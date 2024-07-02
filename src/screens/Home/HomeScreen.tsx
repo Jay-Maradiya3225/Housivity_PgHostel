@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useMemo} from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,22 @@ import {
   Modal,
   TouchableWithoutFeedback,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import axios from 'axios';
-import PropertyCard, {Property} from '../../components/PropertyCard';
-import {hp, wp} from '../../global/globalItems';
+import PropertyCard, { Property } from '../../components/PropertyCard';
+import { hp, wp } from '../../global/globalItems';
 import { styles } from './HomeScreen.styles';
 
 const HomeScreen: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [page, setPage] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
-  const [totalItems, setToatalItems] = useState<number>(0);
+  const [totalItems, setTotalItems] = useState<number>(0);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
-  const fetchProperties = async () => {
-    setLoading(true)
+  const fetchProperties = async (pageNumber: number) => {
+    setLoading(true);
     try {
       const response = await axios.get(
         'https://api.housivity.com/api/v1/property',
@@ -30,14 +31,17 @@ const HomeScreen: React.FC = () => {
           params: {
             city: 'Gandhinagar',
             projectType: '["pgHostel"]',
-            page: 1,
+            page: pageNumber,
+            limit: 30,
           },
         },
       );
-      // console.log("response::",response.data)
       if (response.data.statusCode === 200) {
-        setProperties(response.data.propertyList);
-        setToatalItems(response?.data?.count);
+        setProperties(prevProperties => [
+          ...prevProperties,
+          ...response.data.propertyList,
+        ]);
+        setTotalItems(response?.data?.count);
       } else {
         console.error('Error fetching properties:', response.data.message);
       }
@@ -49,26 +53,40 @@ const HomeScreen: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchProperties();
+    fetchProperties(page);
   }, [page]);
 
   const renderItem = useCallback(
-    ({item}: {item: Property}) => <PropertyCard property={item} />,
+    ({ item }: { item: Property }) => <PropertyCard property={item} />,
     [],
   );
+
+
   const loadMore = useCallback(() => setPage(prevPage => prevPage + 1), []);
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setProperties([]);
+      setPage(prevPage => prevPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    setProperties([]);
+    setPage(prevPage => prevPage + 1);
+  };
 
   const filterOptions = (
     <View style={styles.filterBar}>
       <TouchableOpacity
         style={[
           styles.filterButton,
-          filterModalVisible ? {borderColor: '#ff5a60'} : {borderColor: 'gray'},
+          filterModalVisible ? { borderColor: '#ff5a60' } : { borderColor: 'gray' },
         ]}
         onPress={() => setFilterModalVisible(true)}>
         <Text
           style={[
-            filterModalVisible ? {color: '#ff5a60'} : {borderColor: 'gray'},
+            filterModalVisible ? { color: '#ff5a60' } : { borderColor: 'gray' },
           ]}>
           Filter
         </Text>
@@ -89,25 +107,25 @@ const HomeScreen: React.FC = () => {
   const filterModalContent = useMemo(
     () => (
       <View style={styles.filterModalContent}>
-        <View style={{flexDirection: 'row', flexWrap: 'wrap'}}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           <TouchableOpacity
-            style={[styles.filterButton, {marginBottom: hp(1)}]}>
+            style={[styles.filterButton, { marginBottom: hp(1) }]}>
             <Text style={styles.filterText}>Apartment</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, {marginBottom: hp(1)}]}>
+            style={[styles.filterButton, { marginBottom: hp(1) }]}>
             <Text style={styles.filterText}>Bungalow/Villa</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, {marginBottom: hp(1)}]}>
+            style={[styles.filterButton, { marginBottom: hp(1) }]}>
             <Text style={styles.filterText}>Penthouse</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, {marginBottom: hp(1)}]}>
+            style={[styles.filterButton, { marginBottom: hp(1) }]}>
             <Text style={styles.filterText}>Row House</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.filterButton, {marginBottom: hp(1)}]}>
+            style={[styles.filterButton, { marginBottom: hp(1) }]}>
             <Text style={styles.filterText}>Farm House</Text>
           </TouchableOpacity>
         </View>
@@ -115,7 +133,7 @@ const HomeScreen: React.FC = () => {
           <TouchableOpacity
             style={[styles.filterButton]}
             onPress={() => setFilterModalVisible(false)}>
-            <Text style={[styles.modalButtonText, {color: 'gray'}]}>
+            <Text style={[styles.modalButtonText, { color: 'gray' }]}>
               Cancel
             </Text>
           </TouchableOpacity>
@@ -143,14 +161,28 @@ const HomeScreen: React.FC = () => {
       <Text style={styles.resultsText}>
         {totalItems} Results found for Buy in Gandhinagar
       </Text>
-        <FlatList
+      <FlatList
         data={properties}
         renderItem={renderItem}
         keyExtractor={item => item.id.toString()}
-        onEndReached={loadMore}
+        // onEndReached={loadMore}
         onEndReachedThreshold={0.5}
-        ListFooterComponent={loading ? <Text style={{fontSize:20}}>Loading...</Text> : null}
+        ListFooterComponent={loading ? <ActivityIndicator size="large" color="#ff5a60" /> : null}
       />
+      <View style={styles.paginationContainer}>
+        <TouchableOpacity
+          style={[styles.paginationButton, page === 1 && styles.disabledButton]}
+          onPress={handlePrevPage}
+          disabled={page === 1}>
+          <Text style={styles.paginationButtonText}>Previous</Text>
+        </TouchableOpacity>
+        <Text style={styles.pageNumberText}>Page {page}</Text>
+        <TouchableOpacity
+          style={styles.paginationButton}
+          onPress={handleNextPage}>
+          <Text style={styles.paginationButtonText}>Next</Text>
+        </TouchableOpacity>
+      </View>
       <Modal
         animationType="fade"
         transparent={true}
@@ -158,7 +190,7 @@ const HomeScreen: React.FC = () => {
         onRequestClose={() => setFilterModalVisible(false)}>
         <TouchableWithoutFeedback onPress={() => setFilterModalVisible(false)}>
           <View style={styles.modalBackground}>
-            <View style={[styles.modalContainer,styles.shadowContainer]}>{filterModalContent}</View>
+            <View style={[styles.modalContainer, styles.shadowContainer]}>{filterModalContent}</View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>

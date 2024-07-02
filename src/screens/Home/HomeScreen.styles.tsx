@@ -72,5 +72,27 @@ export const styles = StyleSheet.create({
       shadowColor: '#171717',  
       shadowOpacity: 0.2,  
       shadowRadius: 3,  
-    }
+    },
+    paginationContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginVertical: 20,
+    },
+    paginationButton: {
+      padding: 10,
+      backgroundColor: '#ff5a60',
+      borderRadius: 5,
+      marginHorizontal: 10,
+    },
+    disabledButton: {
+      backgroundColor: 'gray',
+    },
+    paginationButtonText: {
+      color: 'white',
+      fontSize: 16,
+    },
+    pageNumberText: {
+      fontSize: 16,
+    },
   });
